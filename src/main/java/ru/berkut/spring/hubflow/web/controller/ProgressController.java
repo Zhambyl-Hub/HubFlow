@@ -31,7 +31,7 @@ public class ProgressController {
     public ResponseEntity<ProgressMatrixResponse> getMatrix(
             @PathVariable UUID cohortId,
             @AuthenticationPrincipal UserPrincipal principal) {
-        return ResponseEntity.ok(progressService.getMatrix(cohortId));
+        return ResponseEntity.ok(progressService.getMatrix(cohortId , principal));
     }
 
     // POST /hubflow/api/v1/cohorts/{cohortId}/teams/{teamId}/checkpoints/{checkpointId}/progress

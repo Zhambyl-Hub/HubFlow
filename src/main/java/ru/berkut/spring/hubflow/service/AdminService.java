@@ -33,7 +33,8 @@ public class AdminService {
     // ── Список всех пользователей ───────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public Page<User> getUsers(int page, int size) {
+    public Page<User> getUsers(int page, int size , UserPrincipal principal) {
+        requireAdmin(principal);
         return userRepository.findAll(PageRequest.of(page, size, Sort.by("createdAt").descending()));
     }
 

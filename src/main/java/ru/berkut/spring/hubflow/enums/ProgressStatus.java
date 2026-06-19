@@ -1,2 +1,2 @@
 package ru.berkut.spring.hubflow.enums;
-public enum ProgressStatus { PENDING, DONE, PARTIAL }
+public enum ProgressStatus { NOT_STARTED ,PENDING, DONE, PARTIAL }

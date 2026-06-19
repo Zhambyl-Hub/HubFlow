@@ -2,6 +2,7 @@ package ru.berkut.spring.hubflow.web.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import ru.berkut.spring.hubflow.entity.User;
@@ -14,7 +15,6 @@ import ru.berkut.spring.hubflow.web.dto.response.UserResponse;
 
 import java.util.List;
 import java.util.UUID;
-
 @RestController
 @RequestMapping("/admin")
 @RequiredArgsConstructor
@@ -28,7 +28,7 @@ public class AdminController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal UserPrincipal principal) {
-        Page<User> users = adminService.getUsers(page, size);
+        Page<User> users = adminService.getUsers(page, size,principal);
         List<UserResponse> content = users.getContent().stream().map(this::toUserResponse).toList();
         return ResponseEntity.ok(new PageResponse<>(content, page, size,
                 users.getTotalElements(), users.getTotalPages()));
