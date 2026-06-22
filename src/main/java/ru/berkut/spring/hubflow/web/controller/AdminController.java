@@ -4,10 +4,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import ru.berkut.spring.hubflow.entity.Cohort;
 import ru.berkut.spring.hubflow.entity.User;
 import ru.berkut.spring.hubflow.security.UserPrincipal;
 import ru.berkut.spring.hubflow.service.AdminService;
+import ru.berkut.spring.hubflow.service.CohortService;
 import ru.berkut.spring.hubflow.web.dto.request.ChangeSystemRoleRequest;
+import ru.berkut.spring.hubflow.web.dto.response.CohortResponse;
 import ru.berkut.spring.hubflow.web.dto.response.PageResponse;
 import ru.berkut.spring.hubflow.web.dto.response.SystemRoleHistoryResponse;
 import ru.berkut.spring.hubflow.web.dto.response.UserResponse;
@@ -20,6 +23,7 @@ import java.util.UUID;
 public class AdminController {
 
     private final AdminService adminService;
+    private final CohortService cohortService;
 
     // GET /hubflow/api/v1/admin/users
     @GetMapping("/users")
@@ -32,7 +36,14 @@ public class AdminController {
         return ResponseEntity.ok(new PageResponse<>(content, page, size,
                 users.getTotalElements(), users.getTotalPages()));
     }
-
+    @GetMapping("/cohorts")
+    public ResponseEntity<List<CohortResponse>> getCohorts(
+            @AuthenticationPrincipal UserPrincipal principal
+    ){
+        List<CohortResponse> list = cohortService.getCohorts(principal)
+                .stream().map(this::toResponse).toList();
+        return ResponseEntity.ok(list);
+    }
     // GET /hubflow/api/v1/admin/users/mentors
     @GetMapping("/users/mentors")
     public ResponseEntity<List<UserResponse>> getMentors(
@@ -70,5 +81,10 @@ public class AdminController {
         return new UserResponse(u.getId(), u.getEmail(), u.getFirstName(),
                 u.getLastName(), u.getPhone(), u.getAvatarUrl(),
                 u.getIsActive(), u.getCreatedAt());
+    }
+    private CohortResponse toResponse(Cohort c) {
+        return new CohortResponse(c.getId(), c.getTitle(), c.getDescription(),
+                c.getStartDate(), c.getEndDate(), c.getTotalWeeks(),
+                c.getFormat(), c.getStatus(), c.getRegistrationOpen(), c.getCreatedAt());
     }
 }

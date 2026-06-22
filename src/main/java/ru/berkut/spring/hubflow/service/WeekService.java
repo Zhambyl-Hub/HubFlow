@@ -43,7 +43,7 @@ public class WeekService {
 
     @Transactional
     public Week create(CreateWeekRequest req, UserPrincipal principal) {
-        cohortService.requireAdmin(principal.getId(), req.cohortId());
+        cohortService.requireAdmin(principal.getId());
         Cohort cohort = cohortRepository.getReferenceById(req.cohortId());
         return weekRepository.save(Week.builder()
             .cohort(cohort).weekNumber(req.weekNumber()).title(req.title())
@@ -55,7 +55,7 @@ public class WeekService {
     public Checkpoint createCheckpoint(CreateCheckpointRequest req, UserPrincipal principal) {
         Week week = weekRepository.findById(req.weekId())
             .orElseThrow(() -> NotFoundException.of("Week", req.weekId()));
-        cohortService.requireAdmin(principal.getId(), week.getCohort().getId());
+        cohortService.requireAdmin(principal.getId());
         return checkpointRepository.save(Checkpoint.builder()
             .week(week).title(req.title()).description(req.description())
             .isRequired(req.required()).orderIndex(req.orderIndex())

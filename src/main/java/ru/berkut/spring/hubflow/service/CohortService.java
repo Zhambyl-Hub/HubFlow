@@ -33,7 +33,7 @@ public class CohortService {
     private final UserRepository userRepository;
     @Transactional()
     public Cohort updateRegistration(UUID id, @NotNull boolean b, UserPrincipal principal) {
-        requireAdmin(principal.getId(),id);
+        requireAdmin(principal.getId());
 
         Cohort cohort = cohortRepository.findById(id).orElseThrow(() -> new NotFoundException("Cohort not found"));
         if (cohort.getStatus() == CohortStatus.COMPLETED
@@ -54,6 +54,11 @@ public class CohortService {
                                       java.time.LocalDate startDate,
                                       java.time.LocalDate endDate,
                                       int totalWeeks, CohortFormat format) {
+    }
+    @Transactional
+    public List<Cohort> getCohorts(UserPrincipal principal) {
+        requireAdmin(principal.getId());
+        return cohortRepository.findAll();
     }
     @Transactional(readOnly = true)
     public List<Cohort> getPublicCohorts(UserPrincipal principal) {
@@ -98,14 +103,14 @@ public class CohortService {
     public Cohort updateStatus(UUID cohortId, CohortStatus newStatus, UserPrincipal principal) {
         Cohort cohort = cohortRepository.findById(cohortId)
                 .orElseThrow(() -> NotFoundException.of("Cohort", cohortId));
-        requireAdmin(principal.getId(), cohortId);
+        requireAdmin(principal.getId());
         cohort.setStatus(newStatus);
         return cohortRepository.save(cohort);
     }
 
     @Transactional
     public void addMember(UUID cohortId, UUID userId, MembershipRole role, UserPrincipal principal) {
-        requireAdmin(principal.getId(), cohortId);
+        requireAdmin(principal.getId());
 
         if (membershipRepository.existsByUserIdAndCohortId(userId, cohortId)) {
             throw new ConflictException("User already member of cohort");
@@ -124,7 +129,7 @@ public class CohortService {
         }
     }
 
-    public void requireAdmin(UUID userId, UUID cohortId) {
+    public void requireAdmin(UUID userId) {
         User user =  userRepository.findById(userId).orElseThrow(AccessDeniedException::new);
         if (user.getSystemRole()!= SystemRole.ADMIN) {
             throw new AccessDeniedException("Admin role required");

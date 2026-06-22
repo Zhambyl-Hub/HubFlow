@@ -69,13 +69,13 @@ public class CohortApplicationService {
 
     @Transactional(readOnly = true)
     public List<CohortApplication> getApplications(UUID cohortId, UserPrincipal principal) {
-        cohortService.requireAdmin(principal.getId(), cohortId);
+        cohortService.requireAdmin(principal.getId());
         return applicationRepository.findByCohortId(cohortId);
     }
 
     @Transactional(readOnly = true)
     public List<CohortApplication> getPending(UUID cohortId, UserPrincipal principal) {
-        cohortService.requireAdmin(principal.getId(), cohortId);
+        cohortService.requireAdmin(principal.getId());
         return applicationRepository.findByCohortIdAndStatus(cohortId, CohortApplicationStatus.PENDING);
     }
 
@@ -150,7 +150,7 @@ public class CohortApplicationService {
         CohortApplication application = applicationRepository.findById(applicationId)
             .orElseThrow(() -> NotFoundException.of("CohortApplication", applicationId));
 
-        cohortService.requireAdmin(principal.getId(), application.getCohort().getId());
+        cohortService.requireAdmin(principal.getId());
 
         if (application.getStatus() != CohortApplicationStatus.PENDING) {
             throw new BadRequestException("Application already reviewed");

@@ -57,7 +57,7 @@ public class JuryService {
     public JuryInviteResponse createInvite(UUID demoDayId, CreateJuryInviteRequest req,
                                            UserPrincipal principal) {
         DemoDay day = getDemoDay(demoDayId);
-        cohortService.requireAdmin(principal.getId(), day.getCohort().getId());
+        cohortService.requireAdmin(principal.getId());
 
         // Не даём дважды приглашать один email
         if (req.email() != null && !req.email().isBlank()) {
@@ -83,7 +83,7 @@ public class JuryService {
     @Transactional(readOnly = true)
     public List<JuryInviteResponse> listInvites(UUID demoDayId, UserPrincipal principal) {
         DemoDay day = getDemoDay(demoDayId);
-        cohortService.requireAdmin(principal.getId(), day.getCohort().getId());
+        cohortService.requireAdmin(principal.getId());
 
         return juryInviteRepository
                 .findByDemoDayIdOrderByCreatedAtDesc(demoDayId)
@@ -95,7 +95,7 @@ public class JuryService {
     @Transactional
     public void revokeInvite(UUID demoDayId, UUID inviteId, UserPrincipal principal) {
         DemoDay day = getDemoDay(demoDayId);
-        cohortService.requireAdmin(principal.getId(), day.getCohort().getId());
+        cohortService.requireAdmin(principal.getId());
 
         JuryInvite invite = juryInviteRepository.findById(inviteId)
                 .orElseThrow(() -> NotFoundException.of("JuryInvite", inviteId));

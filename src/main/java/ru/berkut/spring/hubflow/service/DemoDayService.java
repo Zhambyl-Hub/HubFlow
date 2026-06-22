@@ -62,7 +62,7 @@ public class DemoDayService {
 
     @Transactional
     public DemoDay create(CreateDemoDayRequest req, UserPrincipal principal) {
-        cohortService.requireAdmin(principal.getId(), req.cohortId());
+        cohortService.requireAdmin(principal.getId());
 
         if (demoDayRepository.findByCohortId(req.cohortId()).isPresent()) {
             throw new ConflictException("Demo Day already exists for this cohort");
@@ -78,7 +78,7 @@ public class DemoDayService {
     @Transactional
     public DemoDay openVoting(UUID demoDayId, UserPrincipal principal) {
         DemoDay day = getDemoDay(demoDayId);
-        cohortService.requireAdmin(principal.getId(), day.getCohort().getId());
+        cohortService.requireAdmin(principal.getId());
 
         if (day.getVotingStatus() != VotingStatus.CLOSED) {
             throw new BadRequestException("Voting already started or finished");
@@ -100,7 +100,7 @@ public class DemoDayService {
     @Transactional
     public DemoDay closeVoting(UUID demoDayId, UserPrincipal principal) {
         DemoDay day = getDemoDay(demoDayId);
-        cohortService.requireAdmin(principal.getId(), day.getCohort().getId());
+        cohortService.requireAdmin(principal.getId());
         day.setVotingStatus(VotingStatus.FINISHED);
         day.setVotingClosesAt(Instant.now());
         return demoDayRepository.save(day);
@@ -108,7 +108,7 @@ public class DemoDayService {
     @Transactional
     public DemoDay showResults(UUID demoDayId,boolean showValue, UserPrincipal principal) {
         DemoDay day = getDemoDay(demoDayId);
-        cohortService.requireAdmin(principal.getId(), day.getCohort().getId());
+        cohortService.requireAdmin(principal.getId());
         day.setShowResultsPublicly(showValue);
         return demoDayRepository.save(day);
     }
@@ -150,7 +150,7 @@ public class DemoDayService {
     public DemoCriteria addCriteria(UUID demoDayId, AddCriteriaRequest req,
                                     UserPrincipal principal) {
         DemoDay day = getDemoDay(demoDayId);
-        cohortService.requireAdmin(principal.getId(), day.getCohort().getId());
+        cohortService.requireAdmin(principal.getId());
 
         DemoCriteria criteria = DemoCriteria.builder()
                 .demoDay(day)
@@ -174,7 +174,7 @@ public class DemoDayService {
     @Transactional
     public void deleteCriteria(UUID demoDayId, UUID criterionId, UserPrincipal principal) {
         DemoDay day = getDemoDay(demoDayId);
-        cohortService.requireAdmin(principal.getId(), day.getCohort().getId());
+        cohortService.requireAdmin(principal.getId());
 
         DemoCriteria criteria = demoCriteriaRepository.findById(criterionId)
                 .orElseThrow(() -> NotFoundException.of("DemoCriteria", criterionId));
