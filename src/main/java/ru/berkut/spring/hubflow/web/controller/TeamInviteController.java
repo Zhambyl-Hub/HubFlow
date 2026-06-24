@@ -22,6 +22,14 @@ public class TeamInviteController {
 
     private final TeamInviteService inviteService;
 
+    // GET /hubflow/api/v1/team-invites/my — входящие приглашения текущего пользователя
+    @GetMapping("/my")
+    public ResponseEntity<List<TeamInviteResponse>> getMyInvites(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(inviteService.getMyInvites(principal)
+                .stream().map(this::toInviteResponse).toList());
+    }
+
     @PostMapping("/{id}")
     public ResponseEntity<Void> invite(
             @PathVariable UUID id,

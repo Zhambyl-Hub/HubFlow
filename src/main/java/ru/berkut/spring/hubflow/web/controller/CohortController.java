@@ -5,12 +5,13 @@ import ru.berkut.spring.hubflow.entity.CohortMembership;
 import ru.berkut.spring.hubflow.enums.CohortStatus;
 import ru.berkut.spring.hubflow.security.UserPrincipal;
 import ru.berkut.spring.hubflow.service.CohortService;
+import ru.berkut.spring.hubflow.service.TeamService;
 import ru.berkut.spring.hubflow.web.dto.request.AddMemberRequest;
-import ru.berkut.spring.hubflow.web.dto.request.ChangeUserRoleRequest;
 import ru.berkut.spring.hubflow.web.dto.request.CreateCohortRequest;
 import ru.berkut.spring.hubflow.web.dto.request.UpdateRegistrationRequest;
 import ru.berkut.spring.hubflow.web.dto.response.CohortMemberResponse;
 import ru.berkut.spring.hubflow.web.dto.response.CohortResponse;
+import ru.berkut.spring.hubflow.web.dto.response.TeamResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ import java.util.UUID;
 public class CohortController {
 
     private final CohortService cohortService;
+    private final TeamService   teamService;
     //спиок всех доступных когорт
     @GetMapping()
     public ResponseEntity<List<CohortResponse>> getPublicCohorts(
@@ -117,6 +119,19 @@ public class CohortController {
                 m.getJoinedAt()
             )).toList();
         return ResponseEntity.ok(members);
+    }
+
+    // GET /hubflow/api/v1/cohorts/{id}/teams — одобренные команды когорты
+    @GetMapping("/{id}/teams")
+    public ResponseEntity<List<TeamResponse>> getTeams(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(teamService.getApprovedTeams(id, principal)
+                .stream().map(t -> new TeamResponse(t.getId(), t.getName(),
+                        t.getIdeaDescription(), t.getProblem(), t.getTargetSegment(),
+                        t.getSolution(), t.getStage(), t.getRepoUrl(),
+                        t.getLandingUrl(), t.getPitchUrl(), t.getCreatedAt()))
+                .toList());
     }
 
     private CohortResponse toResponse(Cohort c) {

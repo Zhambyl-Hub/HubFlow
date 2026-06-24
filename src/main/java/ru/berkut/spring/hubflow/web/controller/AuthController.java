@@ -25,19 +25,20 @@ public class AuthController {
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest req) {
         var result = authService.register(new AuthService.RegisterRequest(
             req.email(), req.password(), req.firstName(), req.lastName(), req.phone()));
-        return ResponseEntity.status(HttpStatus.CREATED)
-            .body(new AuthResponse(result.accessToken(), result.refreshToken()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(result));
     }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest req) {
-        var result = authService.login(req.email(), req.password());
-        return ResponseEntity.ok(new AuthResponse(result.accessToken(), result.refreshToken()));
+        return ResponseEntity.ok(toResponse(authService.login(req.email(), req.password())));
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@RequestHeader("X-Refresh-Token") String token) {
-        var result = authService.refreshTokens(token);
-        return ResponseEntity.ok(new AuthResponse(result.accessToken(), result.refreshToken()));
+        return ResponseEntity.ok(toResponse(authService.refreshTokens(token)));
+    }
+
+    private AuthResponse toResponse(AuthService.AuthResponse r) {
+        return new AuthResponse(r.accessToken(), r.refreshToken(), r.userId(), r.email());
     }
 }

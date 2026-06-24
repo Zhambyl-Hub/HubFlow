@@ -1,7 +1,10 @@
 package ru.berkut.spring.hubflow.web.dto.response;
 
+import java.util.UUID;
 
 public record AuthResponse(
     String accessToken,
-    String refreshToken
+    String refreshToken,
+    UUID   userId,
+    String email
 ) {}

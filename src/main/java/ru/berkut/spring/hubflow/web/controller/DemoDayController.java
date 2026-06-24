@@ -6,8 +6,8 @@ import ru.berkut.spring.hubflow.security.UserPrincipal;
 import ru.berkut.spring.hubflow.service.DemoDayService;
 import ru.berkut.spring.hubflow.web.dto.request.*;
 import ru.berkut.spring.hubflow.web.dto.response.DemoCriteriaResponse;
+import ru.berkut.spring.hubflow.web.dto.response.DemoDayParticipantResponse;
 import ru.berkut.spring.hubflow.web.dto.response.DemoDayResponse;
-import ru.berkut.spring.hubflow.web.dto.response.VoteResultResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -115,6 +115,65 @@ public class DemoDayController {
     private DemoCriteriaResponse toCriteriaResponse(DemoCriteria c) {
         return new DemoCriteriaResponse(c.getId(), c.getTitle(), c.getDescription(),
                 c.getMaxScore(), c.getOrderIndex());
+    }
+
+    // ─────────── Голосование участников ───────────
+
+    // POST /hubflow/api/v1/cohorts/{cohortId}/demo-day/{demoDayId}/vote
+    @PostMapping("/{demoDayId}/vote")
+    public ResponseEntity<Void> vote(
+            @PathVariable UUID cohortId,
+            @PathVariable UUID demoDayId,
+            @Valid @RequestBody VoteRequest req,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        demoDayService.vote(
+                new DemoDayService.VoteRequest(demoDayId, req.teamId(), req.criterionId(), req.score()),
+                principal);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    // ─────────── Участники Demo Day ───────────
+
+    // POST /hubflow/api/v1/cohorts/{cohortId}/demo-day/{demoDayId}/participants
+    @PostMapping("/{demoDayId}/participants")
+    public ResponseEntity<DemoDayParticipantResponse> addParticipant(
+            @PathVariable UUID cohortId,
+            @PathVariable UUID demoDayId,
+            @Valid @RequestBody AddParticipantRequest req,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                demoDayService.addParticipant(demoDayId, req.teamId(), req.presentationOrder(), principal));
+    }
+
+    // GET /hubflow/api/v1/cohorts/{cohortId}/demo-day/{demoDayId}/participants
+    @GetMapping("/{demoDayId}/participants")
+    public ResponseEntity<List<DemoDayParticipantResponse>> listParticipants(
+            @PathVariable UUID cohortId,
+            @PathVariable UUID demoDayId) {
+        return ResponseEntity.ok(demoDayService.listParticipants(demoDayId));
+    }
+
+    // PATCH /hubflow/api/v1/cohorts/{cohortId}/demo-day/{demoDayId}/participants/{teamId}/materials
+    @PatchMapping("/{demoDayId}/participants/{teamId}/materials")
+    public ResponseEntity<DemoDayParticipantResponse> updateMaterials(
+            @PathVariable UUID cohortId,
+            @PathVariable UUID demoDayId,
+            @PathVariable UUID teamId,
+            @RequestBody UpdateParticipantMaterialsRequest req,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(
+                demoDayService.updateMaterials(demoDayId, teamId, req.pitchDeckUrl(), req.videoUrl(), principal));
+    }
+
+    // DELETE /hubflow/api/v1/cohorts/{cohortId}/demo-day/{demoDayId}/participants/{teamId}
+    @DeleteMapping("/{demoDayId}/participants/{teamId}")
+    public ResponseEntity<Void> removeParticipant(
+            @PathVariable UUID cohortId,
+            @PathVariable UUID demoDayId,
+            @PathVariable UUID teamId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        demoDayService.removeParticipant(demoDayId, teamId, principal);
+        return ResponseEntity.noContent().build();
     }
 
     private DemoDayResponse toResponse(DemoDay d) {

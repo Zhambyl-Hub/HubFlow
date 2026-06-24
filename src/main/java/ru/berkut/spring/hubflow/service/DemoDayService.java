@@ -1,6 +1,5 @@
 package ru.berkut.spring.hubflow.service;
 
-import org.jspecify.annotations.Nullable;
 import ru.berkut.spring.hubflow.entity.*;
 import ru.berkut.spring.hubflow.enums.NotificationType;
 import ru.berkut.spring.hubflow.enums.VotingStatus;
@@ -14,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.berkut.spring.hubflow.web.dto.response.DemoCriteriaResponse;
+import ru.berkut.spring.hubflow.web.dto.response.DemoDayParticipantResponse;
 import ru.berkut.spring.hubflow.web.dto.response.DemoDayResponse;
 import ru.berkut.spring.hubflow.web.dto.request.AddCriteriaRequest;
 
@@ -26,14 +26,15 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class DemoDayService {
-    private final DemoCriteriaRepository demoCriteriaRepository;
-    private final DemoDayRepository         demoDayRepository;
-    private final VoteRepository            voteRepository;
-    private final UserRepository            userRepository;
-    private final CohortRepository          cohortRepository;
-    private final TeamRepository            teamRepository;
-    private final CohortService             cohortService;
-    private final NotificationService       notificationService;
+    private final DemoCriteriaRepository        demoCriteriaRepository;
+    private final DemoDayRepository             demoDayRepository;
+    private final DemoDayParticipantRepository  participantRepository;
+    private final VoteRepository                voteRepository;
+    private final UserRepository                userRepository;
+    private final CohortRepository              cohortRepository;
+    private final TeamRepository                teamRepository;
+    private final CohortService                 cohortService;
+    private final NotificationService           notificationService;
 
     public Optional<DemoDayResponse> getByCohort(UUID cohortId) {
         return demoDayRepository.findByCohortId(cohortId).map(demoDay -> {
@@ -124,6 +125,13 @@ public class DemoDayService {
                 req.demoDayId(), principal.getId(), req.teamId(), req.criterionId())) {
             throw new ConflictException("Already voted for this team/criterion");
         }
+
+        DemoCriteria criterion = demoCriteriaRepository.findById(req.criterionId())
+                .orElseThrow(() -> NotFoundException.of("DemoCriteria", req.criterionId()));
+        if (!criterion.getDemoDay().getId().equals(req.demoDayId())) {
+            throw new BadRequestException("Criterion does not belong to this Demo Day");
+        }
+
         User voter = userRepository.getReferenceById(principal.getId());
         Team team  = teamRepository.getReferenceById(req.teamId());
 
@@ -131,6 +139,7 @@ public class DemoDayService {
                 .demoDay(day)
                 .voter(voter)
                 .team(team)
+                .criterion(criterion)
                 .score(req.score())
                 .build());
     }
@@ -182,6 +191,71 @@ public class DemoDayService {
             throw new BadRequestException("Критерий не принадлежит данному Demo Day");
         }
         demoCriteriaRepository.delete(criteria);
+    }
+
+    // ─────────────────── Участники Demo Day ───────────────────
+
+    @Transactional
+    public DemoDayParticipantResponse addParticipant(UUID demoDayId, UUID teamId,
+                                                     Integer presentationOrder,
+                                                     UserPrincipal principal) {
+        DemoDay day = getDemoDay(demoDayId);
+        cohortService.requireAdmin(principal.getId());
+
+        if (participantRepository.existsByDemoDayIdAndTeamId(demoDayId, teamId)) {
+            throw new ConflictException("Team is already a participant of this Demo Day");
+        }
+
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> NotFoundException.of("Team", teamId));
+
+        DemoDayParticipant participant = participantRepository.save(DemoDayParticipant.builder()
+                .demoDay(day)
+                .team(team)
+                .presentationOrder(presentationOrder)
+                .build());
+
+        return toParticipantResponse(participant);
+    }
+
+    @Transactional
+    public DemoDayParticipantResponse updateMaterials(UUID demoDayId, UUID teamId,
+                                                      String pitchDeckUrl, String videoUrl,
+                                                      UserPrincipal principal) {
+        cohortService.checkMembership(principal.getId(), getDemoDay(demoDayId).getCohort().getId());
+
+        DemoDayParticipant participant = participantRepository
+                .findByDemoDayIdAndTeamId(demoDayId, teamId)
+                .orElseThrow(() -> new NotFoundException("Participant not found"));
+
+        if (pitchDeckUrl != null) participant.setPitchDeckUrl(pitchDeckUrl);
+        if (videoUrl     != null) participant.setVideoUrl(videoUrl);
+        participantRepository.save(participant);
+        return toParticipantResponse(participant);
+    }
+
+    @Transactional
+    public void removeParticipant(UUID demoDayId, UUID teamId, UserPrincipal principal) {
+        getDemoDay(demoDayId);
+        cohortService.requireAdmin(principal.getId());
+
+        DemoDayParticipant participant = participantRepository
+                .findByDemoDayIdAndTeamId(demoDayId, teamId)
+                .orElseThrow(() -> new NotFoundException("Participant not found"));
+
+        participantRepository.delete(participant);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DemoDayParticipantResponse> listParticipants(UUID demoDayId) {
+        return participantRepository.findByDemoDayIdOrderByPresentationOrder(demoDayId)
+                .stream().map(this::toParticipantResponse).toList();
+    }
+
+    private DemoDayParticipantResponse toParticipantResponse(DemoDayParticipant p) {
+        return new DemoDayParticipantResponse(
+                p.getId(), p.getTeam().getId(), p.getTeam().getName(),
+                p.getPresentationOrder(), p.getPitchDeckUrl(), p.getVideoUrl());
     }
 
     private DemoDay getDemoDay(UUID id) {

@@ -25,6 +25,7 @@ public class TeamService {
     private final TeamRepository       teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final UserRepository       userRepository;
+    private final CohortService        cohortService;
 
     public record CreateTeamRequest(String name, String ideaDescription,
                                     String problem, String targetSegment, String solution) {}
@@ -93,6 +94,12 @@ public class TeamService {
                 .orElseThrow(() -> new AccessDeniedException("Not a team member"));
         return teamRepository.findById(teamId)
                 .orElseThrow(() -> NotFoundException.of("Team", teamId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Team> getApprovedTeams(UUID cohortId, UserPrincipal principal) {
+        cohortService.checkMembership(principal.getId(), cohortId);
+        return teamRepository.findApprovedTeamsByCohortId(cohortId);
     }
 
     public void requireTeamLead(UUID userId, UUID teamId) {
